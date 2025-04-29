@@ -24,9 +24,13 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 abstract class BaseCommand extends Command
 {
+    /**
+     * @param iterable<non-empty-string> $ignoredViews
+     */
     final public function __construct(
         private readonly ConnectionRegistry $connectionRegistry,
         private readonly ContainerInterface $viewsProviderLocator,
+        private readonly iterable $ignoredViews = [],
         ?string $name = null,
     ) {
         parent::__construct($name);
@@ -76,7 +80,11 @@ abstract class BaseCommand extends Command
             throw new \LogicException(\sprintf('Invalid views provider. Expected %s, got %s.', ViewsProvider::class, get_debug_type($viewsProvider)));
         }
 
-        $viewsSync = new ViewsSync($connection, $viewsProvider);
+        $viewsSync = new ViewsSync(
+            connection: $connection,
+            viewsProvider: $viewsProvider,
+            ignoredViews: $this->ignoredViews,
+        );
 
         $this->doExecute($viewsSync);
 
