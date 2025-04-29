@@ -17,9 +17,16 @@ final class ViewsSync
 {
     private AbstractSchemaManager $schemaManager;
 
+    /**
+     * @param iterable<non-empty-string> $ignoredViews Iterator of ignored views. Supports simple strings, wildcards and
+     *                                                regexes.
+     *
+     * @noinspection PhpDocMissingThrowsInspection
+     */
     public function __construct(
         private readonly Connection $connection,
         private readonly ViewsProvider $viewsProvider,
+        private readonly iterable $ignoredViews = [],
     ) {
         /** @noinspection PhpUnhandledExceptionInspection */
         $this->schemaManager = $this->connection->createSchemaManager();
@@ -50,6 +57,9 @@ final class ViewsSync
     {
         $views = $this->getDatabaseViews();
 
+        // Filter ignored views
+        $views = array_values(array_filter($views, fn(View $v): bool => false === $this->isIgnoredView($v)));
+
         foreach ($views as $view) {
             $this->schemaManager->dropView($view->getQuotedName($this->connection->getDatabasePlatform()));
         }
@@ -57,10 +67,15 @@ final class ViewsSync
 
     /**
      * @throws Exception
+     * @throws ViewIsIgnored
      */
     private function doCreate(): void
     {
         foreach ($this->viewsProvider->getViews() as $view) {
+            if ($this->isIgnoredView($view)) {
+                throw ViewIsIgnored::createByView($view);
+            }
+
             $this->schemaManager->createView($view);
         }
     }
@@ -90,6 +105,20 @@ final class ViewsSync
         });
 
         return array_values($views);
+    }
+
+    private function isIgnoredView(View $view): bool
+    {
+        foreach ($this->ignoredViews as $ignoredView) {
+            if (
+                fnmatch($ignoredView, $view->getName())
+                || @preg_match($ignoredView, $view->getName())
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
