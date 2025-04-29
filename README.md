@@ -48,6 +48,12 @@ Example Symfony configuration using a single Doctrine connection.
 Basic service registration and command wiring:
 
 ```yaml
+parameters:
+  doctrine.views.ignored:
+    - 'ignored_view'
+    - '*_ignored_view'
+    - '/^[\w\d]_ignored_view$/'
+
 services:
   doctrine.views_provider:
     class: Kenny1911\DoctrineViewsSync\ViewsProvider\ChainViewsProvider
@@ -64,18 +70,23 @@ services:
     arguments:
       - '@doctrine'
       - '@doctrine.views_provider.locator'
+      - '%doctrine.views.ignored%'
     autoconfigure: true
 
   Kenny1911\DoctrineViewsSync\Console\ViewsSyncCommand:
     arguments:
       - '@doctrine'
       - '@doctrine.views_provider.locator'
+      - '%doctrine.views.ignored%'
     autoconfigure: true
 ```
 
 Services implementing the `Kenny1911\DoctrineViewsSync\ViewsProvider` interface must be tagged with `doctrine.views_provider`.
 
 The `doctrine.views_provider.locator` service is a PSR container where the connection name is used as the key, and the corresponding `ViewsProvider` as the value.
+
+In the `doctrine.views.ignored` parameter specifies a list of database views that should be ignored.
+Regular view names, glob patterns, and regular expressions are supported.
 
 If you only use a single connection, you can use the `Kenny1911\DoctrineViewsSync\Psr\Container\SingleValueContainer`.  
 For multiple connections, consider using `Kenny1911\DoctrineViewsSync\Psr\Container\MapContainer`  

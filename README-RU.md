@@ -48,6 +48,12 @@ php bin/console doctrine:views:sync
 Базовая конфигурация и регистрация команд:
 
 ```yaml
+parameters:
+  doctrine.views.ignored:
+    - 'ignored_view'
+    - '*_ignored_view'
+    - '/^[\w\d]_ignored_view$/'
+    
 services:
   doctrine.views_provider:
     class: Kenny1911\DoctrineViewsSync\ViewsProvider\ChainViewsProvider
@@ -64,12 +70,14 @@ services:
     arguments:
       - '@doctrine'
       - '@doctrine.views_provider.locator'
+      - '%doctrine.views.ignored%'
     autoconfigure: true
 
   Kenny1911\DoctrineViewsSync\Console\ViewsSyncCommand:
     arguments:
       - '@doctrine'
       - '@doctrine.views_provider.locator'
+      - '%doctrine.views.ignored%'
     autoconfigure: true
 ```
 
@@ -78,6 +86,9 @@ services:
 
 Сервис `doctrine.views_provider.locator` - это psr контейнер, где в качестве ключа используется название подключения, а
 в качестве значения `ViewsProvider`.
+
+В параметре `doctrine.views.ignored` указывается список представлений БД, которые следует игнорировать. Поддерживаются
+обычные названия представлений, glob шаблоны и регулярные выражения.
 
 Если подключение одно, то можно использовать `Kenny1911\DoctrineViewsSync\Psr\Container\SingleValueContainer`.
 В случае, если используется несколько подключений, можно использовать
