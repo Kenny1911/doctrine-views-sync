@@ -84,6 +84,7 @@ abstract class BaseCommand extends Command
             connection: $connection,
             viewsProvider: $viewsProvider,
             ignoredViews: $this->ignoredViews,
+            output: $output,
         );
 
         $this->doExecute($viewsSync);

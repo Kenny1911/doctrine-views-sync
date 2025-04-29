@@ -9,6 +9,8 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\Exception\NotSupported;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\View;
+use Symfony\Component\Console\Output\NullOutput;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * @api
@@ -27,6 +29,7 @@ final class ViewsSync
         private readonly Connection $connection,
         private readonly ViewsProvider $viewsProvider,
         private readonly iterable $ignoredViews = [],
+        private readonly OutputInterface $output = new NullOutput(),
     ) {
         /** @noinspection PhpUnhandledExceptionInspection */
         $this->schemaManager = $this->connection->createSchemaManager();
@@ -62,6 +65,7 @@ final class ViewsSync
 
         foreach ($views as $view) {
             $this->schemaManager->dropView($view->getQuotedName($this->connection->getDatabasePlatform()));
+            $this->output->writeln(\sprintf('Drop view "%s".', $view->getName()));
         }
     }
 
@@ -77,6 +81,7 @@ final class ViewsSync
             }
 
             $this->schemaManager->createView($view);
+            $this->output->writeln(\sprintf('Create view "%s".', $view->getName()));
         }
     }
 
