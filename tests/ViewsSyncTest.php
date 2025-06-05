@@ -82,8 +82,8 @@ final class ViewsSyncTest extends TestCase
             ->executeQuery('SELECT * FROM users_enabled')
             ->fetchAllAssociative();
 
-        self::assertCount(1, $this->connection->createSchemaManager()->listViews());
-        self::assertSame('users_enabled', $this->connection->createSchemaManager()->listViews()[0]->getName());
+        self::assertCount(1, $this->getViews());
+        self::assertSame('users_enabled', $this->getViews()[0]->getName());
         self::assertSame(
             expected: [
                 ['id' => '019635ee-5a98-7cad-b6bf-1d5c16d9fc84', 'username' => 'foo'],
@@ -95,13 +95,13 @@ final class ViewsSyncTest extends TestCase
         // Check Drop view
         $sync->drop();
 
-        self::assertCount(0, $this->connection->createSchemaManager()->listViews());
+        self::assertCount(0, $this->getViews());
 
         // Check Create Again
         $sync->create();
 
-        self::assertCount(1, $this->connection->createSchemaManager()->listViews());
-        self::assertSame('users_enabled', $this->connection->createSchemaManager()->listViews()[0]->getName());
+        self::assertCount(1, $this->getViews());
+        self::assertSame('users_enabled', $this->getViews()[0]->getName());
 
         unset($sync, $result);
 
@@ -119,8 +119,8 @@ final class ViewsSyncTest extends TestCase
             ->executeQuery('SELECT * FROM users_enabled')
             ->fetchAllAssociative();
 
-        self::assertCount(1, $this->connection->createSchemaManager()->listViews());
-        self::assertSame('users_enabled', $this->connection->createSchemaManager()->listViews()[0]->getName());
+        self::assertCount(1, $this->getViews());
+        self::assertSame('users_enabled', $this->getViews()[0]->getName());
         self::assertSame(
             expected: [
                 ['username' => 'foo'],
@@ -182,7 +182,8 @@ final class ViewsSyncTest extends TestCase
 
         $expectedViews = ['users_enabled', $ignoredViewName];
         sort($expectedViews);
-        $actualViews = array_map(static fn(View $v) => $v->getName(), $sm->listViews());
+        /** @psalm-suppress RedundantFunctionCall In doctrine/dbal:^3.0 \Doctrine\DBAL\Schema\AbstractSchemaManager::listViews() return array map */
+        $actualViews = array_map(static fn(View $v) => $v->getName(), array_values($sm->listViews()));
         sort($actualViews);
 
         self::assertSame($expectedViews, $actualViews);
@@ -196,8 +197,20 @@ final class ViewsSyncTest extends TestCase
         $sync->drop();
 
         $expectedViews = [$ignoredViewName];
-        $actualViews = array_map(static fn(View $v) => $v->getName(), $sm->listViews());
+        /** @psalm-suppress RedundantFunctionCall In doctrine/dbal:^3.0 \Doctrine\DBAL\Schema\AbstractSchemaManager::listViews() return array map */
+        $actualViews = array_map(static fn(View $v) => $v->getName(), array_values($sm->listViews()));
 
         self::assertSame($expectedViews, $actualViews);
+    }
+
+    /**
+     * @return list<View>
+     *
+     * @throws Exception
+     */
+    private function getViews(): array
+    {
+        /** @psalm-suppress RedundantFunctionCall In doctrine/dbal:^3.0 \Doctrine\DBAL\Schema\AbstractSchemaManager::listViews() return array map */
+        return array_values($this->connection->createSchemaManager()->listViews());
     }
 }

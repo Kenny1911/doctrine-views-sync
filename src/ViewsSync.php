@@ -6,7 +6,6 @@ namespace Kenny1911\DoctrineViewsSync;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
-use Doctrine\DBAL\Platforms\Exception\NotSupported;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\View;
 use Symfony\Component\Console\Output\NullOutput;
@@ -96,7 +95,7 @@ final class ViewsSync
 
         try {
             $schemaNames = $this->schemaManager->listSchemaNames();
-        } catch (NotSupported) {
+        } catch (Exception) {
             $schemaNames = null;
         }
 
