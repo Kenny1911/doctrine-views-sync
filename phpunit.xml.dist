@@ -12,6 +12,9 @@
          failOnRisky="true"
          failOnWarning="true"
          colors="true">
+    <php>
+        <env name="DATABASE_URL" value="pdo-sqlite://:memory:"/>
+    </php>
     <testsuites>
         <testsuite name="default">
             <directory>tests</directory>

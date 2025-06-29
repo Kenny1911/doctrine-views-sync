@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Kenny1911\DoctrineViewsSync\Tests;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Type;
@@ -37,21 +37,20 @@ final class ViewsSyncTest extends TestCase
     #[\Override]
     protected function setUp(): void
     {
-        $this->connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
-
-        $this->connection
-            ->createSchemaManager()
-            ->createTable(
-                (new Table(
-                    name: 'users',
-                    columns: [
-                        (new Column('id', Type::getType('guid')))->setNotnull(true),
-                        (new Column('username', Type::getType('string')))->setNotnull(true),
-                        (new Column('password', Type::getType('string')))->setNotnull(true),
-                        (new Column('enabled', Type::getType('boolean')))->setNotnull(true),
-                    ],
-                ))->setPrimaryKey(['id']),
-            );
+        $this->connection = DbManager::fromDsn($_ENV['DATABASE_URL'])
+            ->init(new Schema(
+                tables: [
+                    (new Table(
+                        name: 'users',
+                        columns: [
+                            (new Column('id', Type::getType('guid')))->setNotnull(true),
+                            (new Column('username', Type::getType('string')))->setNotnull(true),
+                            (new Column('password', Type::getType('string')))->setNotnull(true),
+                            (new Column('enabled', Type::getType('boolean')))->setNotnull(true),
+                        ],
+                    ))->setPrimaryKey(['id']),
+                ],
+            ));
 
         foreach (self::USERS as $user) {
             $this->connection->executeQuery(
@@ -60,6 +59,12 @@ final class ViewsSyncTest extends TestCase
                 types: ['id' => 'guid', 'enabled' => 'boolean'],
             );
         }
+    }
+
+    #[\Override]
+    protected function tearDown(): void
+    {
+        $this->connection->close();
     }
 
     /**
@@ -71,7 +76,7 @@ final class ViewsSyncTest extends TestCase
             connection: $this->connection,
             viewsProvider: new CallableViewsProvider(static fn() => yield new View(
                 name: 'users_enabled',
-                sql: 'SELECT id, username FROM users WHERE enabled = 1',
+                sql: 'SELECT id, username FROM users WHERE enabled = true',
             )),
         );
 
@@ -110,7 +115,7 @@ final class ViewsSyncTest extends TestCase
             connection: $this->connection,
             viewsProvider: new CallableViewsProvider(static fn() => yield new View(
                 name: 'users_enabled',
-                sql: 'SELECT username FROM users WHERE enabled = 1',
+                sql: 'SELECT username FROM users WHERE enabled = true',
             )),
         );
         $sync2->sync();
@@ -147,7 +152,7 @@ final class ViewsSyncTest extends TestCase
             viewsProvider: new CallableViewsProvider(static function () use ($ignoredViewName) {
                 yield new View(
                     name: 'users_enabled',
-                    sql: 'SELECT username FROM users WHERE enabled = 1',
+                    sql: 'SELECT username FROM users WHERE enabled = true',
                 );
                 yield new View(
                     name: $ignoredViewName,
@@ -173,7 +178,7 @@ final class ViewsSyncTest extends TestCase
         $sm = $this->connection->createSchemaManager();
         $sm->createView(new View(
             name: 'users_enabled',
-            sql: 'SELECT username FROM users WHERE enabled = 1',
+            sql: 'SELECT username FROM users WHERE enabled = true',
         ));
         $sm->createView(new View(
             name: $ignoredViewName,

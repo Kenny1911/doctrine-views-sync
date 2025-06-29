@@ -116,6 +116,22 @@ services:
       - 'doctrine.views_provider'
 ```
 
+## Development
+
+Tests will run with in-memory sqlite db by default.
+
+If you want to run tests with other dbms, set environment variable `DATABASE_URL`.
+
+File `docker-compose.yml` contains prepared settings for different dbms. You must run database servers before run tests
+and down after tests was passed.
+
+Running tests example:
+
+```bash
+# Postgres
+DATABASE_URL='pdo-pgsql://postgres:123@localhost:5432/views-sync' ./vendor/bin/phpunit
+```
+
 ## License
 
 MIT
