@@ -1,0 +1,11 @@
+services:
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-17.5-bookworm}
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: views-sync
+    ports:
+      - ${POSTGRES_PORT:-127.0.0.1:5432}:5432
+    volumes:
+      - ./var/pgdata:/var/lib/postgresql/data
