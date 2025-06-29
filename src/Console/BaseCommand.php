@@ -83,7 +83,6 @@ abstract class BaseCommand extends Command
         $viewsSync = new ViewsSync(
             connection: $connection,
             viewsProvider: $viewsProvider,
-            ignoredViews: $this->ignoredViews,
             output: $output,
         );
 
