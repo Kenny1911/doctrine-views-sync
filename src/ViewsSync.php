@@ -7,7 +7,7 @@ namespace Kenny1911\DoctrineViewsSync;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
-use Doctrine\DBAL\Schema\View;
+use Kenny1911\DoctrineViewsSync\ViewsProvider\ReverseViewsProvider;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -18,8 +18,9 @@ final class ViewsSync
 {
     private readonly AbstractSchemaManager $schemaManager;
 
-    /** @var list<View> */
-    private readonly array $views;
+    private readonly ViewsProvider $viewsProvider;
+
+    private readonly ViewsProvider $reverseViewsProvider;
 
     /**
      * @noinspection PhpDocMissingThrowsInspection
@@ -31,9 +32,8 @@ final class ViewsSync
     ) {
         /** @noinspection PhpUnhandledExceptionInspection */
         $this->schemaManager = $this->connection->createSchemaManager();
-
-        $viewsIter = $viewsProvider->getViews();
-        $this->views = array_values($viewsIter instanceof \Traversable ? iterator_to_array($viewsIter) : $viewsIter);
+        $this->viewsProvider = $viewsProvider;
+        $this->reverseViewsProvider = new ReverseViewsProvider($this->viewsProvider);
     }
 
     public function drop(): void
@@ -59,9 +59,7 @@ final class ViewsSync
      */
     private function doDrop(): void
     {
-        $views = array_reverse($this->views);
-
-        foreach ($views as $view) {
+        foreach ($this->reverseViewsProvider->getViews() as $view) {
             $this->schemaManager->dropView($view->getQuotedName($this->connection->getDatabasePlatform()));
             $this->output->writeln(\sprintf('Drop view "%s".', $view->getName()));
         }
@@ -72,7 +70,7 @@ final class ViewsSync
      */
     private function doCreate(): void
     {
-        foreach ($this->views as $view) {
+        foreach ($this->viewsProvider->getViews() as $view) {
             $this->schemaManager->createView($view);
             $this->output->writeln(\sprintf('Create view "%s".', $view->getName()));
         }
