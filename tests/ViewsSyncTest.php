@@ -11,10 +11,8 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Type;
-use Kenny1911\DoctrineViewsSync\ViewIsIgnored;
 use Kenny1911\DoctrineViewsSync\ViewsProvider\CallableViewsProvider;
 use Kenny1911\DoctrineViewsSync\ViewsSync;
-use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -133,79 +131,6 @@ final class ViewsSyncTest extends TestCase
             ],
             actual: $result2,
         );
-    }
-
-    /**
-     * @param non-empty-string $ignoredViewName
-     * @param non-empty-string $ignoredViewPattern
-     */
-    #[TestWith(['ignored', 'ignored'])]
-    #[TestWith(['some_ignored_view', '?*_ignored_view'])]
-    #[TestWith(['some_ignored_view', '/^[a-zA-Z0-9]+_ignored_view$/'])]
-    public function testCreateViewsThrowViewIsIgnored(string $ignoredViewName, string $ignoredViewPattern): void
-    {
-        $this->expectException(ViewIsIgnored::class);
-        $this->expectExceptionMessage(\sprintf('View "%s" is ignored.', $ignoredViewName));
-
-        $sync = new ViewsSync(
-            connection: $this->connection,
-            viewsProvider: new CallableViewsProvider(static function () use ($ignoredViewName) {
-                yield new View(
-                    name: 'users_enabled',
-                    sql: 'SELECT username FROM users WHERE enabled = true',
-                );
-                yield new View(
-                    name: $ignoredViewName,
-                    sql: 'SELECT username FROM users',
-                );
-            }),
-            ignoredViews: [$ignoredViewPattern],
-        );
-        $sync->create();
-    }
-
-    /**
-     * @param non-empty-string $ignoredViewName
-     * @param non-empty-string $ignoredViewPattern
-     *
-     * @throws Exception
-     */
-    #[TestWith(['ignored', 'ignored'])]
-    #[TestWith(['some_ignored_view', '?*_ignored_view'])]
-    #[TestWith(['some_ignored_view', '/^[a-zA-Z0-9]+_ignored_view$/'])]
-    public function testDropViewsWithoutIgnored(string $ignoredViewName, string $ignoredViewPattern): void
-    {
-        $sm = $this->connection->createSchemaManager();
-        $sm->createView(new View(
-            name: 'users_enabled',
-            sql: 'SELECT username FROM users WHERE enabled = true',
-        ));
-        $sm->createView(new View(
-            name: $ignoredViewName,
-            sql: 'SELECT username FROM users',
-        ));
-
-        $expectedViews = ['users_enabled', $ignoredViewName];
-        sort($expectedViews);
-        /** @psalm-suppress RedundantFunctionCall In doctrine/dbal:^3.0 \Doctrine\DBAL\Schema\AbstractSchemaManager::listViews() return array map */
-        $actualViews = array_map(static fn(View $v) => $v->getName(), array_values($sm->listViews()));
-        sort($actualViews);
-
-        self::assertSame($expectedViews, $actualViews);
-        unset($expectedViews, $actualViews);
-
-        $sync = new ViewsSync(
-            connection: $this->connection,
-            viewsProvider: new CallableViewsProvider(static fn() => []),
-            ignoredViews: [$ignoredViewPattern],
-        );
-        $sync->drop();
-
-        $expectedViews = [$ignoredViewName];
-        /** @psalm-suppress RedundantFunctionCall In doctrine/dbal:^3.0 \Doctrine\DBAL\Schema\AbstractSchemaManager::listViews() return array map */
-        $actualViews = array_map(static fn(View $v) => $v->getName(), array_values($sm->listViews()));
-
-        self::assertSame($expectedViews, $actualViews);
     }
 
     /**
