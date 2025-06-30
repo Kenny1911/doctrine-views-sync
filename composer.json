@@ -42,7 +42,10 @@
     "autoload": {
         "psr-4": {
             "Kenny1911\\DoctrineViewsSync\\": "src/"
-        }
+        },
+        "files": [
+            "./src/functions.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
