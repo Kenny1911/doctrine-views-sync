@@ -47,6 +47,7 @@ final class DbManager
         $this->dropDatabase();
 
         $connection = DriverManager::getConnection($this->params);
+        $connection->setAutoCommit(false);
         $connection->createSchemaManager()->migrateSchema($schema);
 
         return $connection;
