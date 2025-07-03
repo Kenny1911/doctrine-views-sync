@@ -86,7 +86,7 @@ final class ViewsSyncTest extends TestCase
             ->fetchAllAssociative();
 
         self::assertCount(1, $this->getViews());
-        self::assertSame('users_enabled', $this->getViews()[0]->getName());
+        self::assertSame('users_enabled', $this->getViewName($this->getViews()[0]));
         self::assertSame(
             expected: [
                 ['id' => '019635ee-5a98-7cad-b6bf-1d5c16d9fc84', 'username' => 'foo'],
@@ -104,7 +104,7 @@ final class ViewsSyncTest extends TestCase
         $sync->create();
 
         self::assertCount(1, $this->getViews());
-        self::assertSame('users_enabled', $this->getViews()[0]->getName());
+        self::assertSame('users_enabled', $this->getViewName($this->getViews()[0]));
 
         unset($sync, $result);
 
@@ -123,7 +123,7 @@ final class ViewsSyncTest extends TestCase
             ->fetchAllAssociative();
 
         self::assertCount(1, $this->getViews());
-        self::assertSame('users_enabled', $this->getViews()[0]->getName());
+        self::assertSame('users_enabled', $this->getViewName($this->getViews()[0]));
         self::assertSame(
             expected: [
                 ['username' => 'foo'],
@@ -140,7 +140,21 @@ final class ViewsSyncTest extends TestCase
      */
     private function getViews(): array
     {
-        /** @psalm-suppress RedundantFunctionCall In doctrine/dbal:^3.0 \Doctrine\DBAL\Schema\AbstractSchemaManager::listViews() return array map */
-        return array_values($this->connection->createSchemaManager()->listViews());
+        $views = [];
+        
+        foreach ($this->connection->createSchemaManager()->listViews() as $view) {
+            if (in_array($view->getNamespaceName(), ['information_schema', 'pg_catalog', 'pg_toast'], true)) {
+                continue;
+            }
+
+            $views[] = $view;
+        }
+
+        return $views;
+    }
+
+    private function getViewName(View $view): string
+    {
+        return $view->getShortestName($view->getNamespaceName());
     }
 }
