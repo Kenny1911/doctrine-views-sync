@@ -9,3 +9,15 @@ services:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     tmpfs:
       - /var/lib/postgresql/data
+
+  mysql:
+    image: mysql:${MYSQL_VERSION:-9.3.0}
+    environment:
+      MYSQL_ROOT_PASSWORD: 123
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: 123
+      MYSQL_DATABASE: views-sync
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
+    tmpfs:
+      - /var/lib/mysql
