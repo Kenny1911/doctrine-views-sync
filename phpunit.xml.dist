@@ -14,6 +14,8 @@
          colors="true">
     <php>
         <env name="DATABASE_URL" value="pdo-sqlite://:memory:"/>
+        <!--<env name="DATABASE_URL" value="pdo-pgsql://postgres:123@127.0.0.1:5432/views-sync"/>-->
+        <!--<env name="DATABASE_URL" value="pdo-mysql://mysql:123@127.0.0.1:3306/views-sync"/>-->
     </php>
     <testsuites>
         <testsuite name="default">
