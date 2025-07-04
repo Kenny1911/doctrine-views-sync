@@ -21,6 +21,7 @@ final class ReverseViewsProvider implements ViewsProvider
         private readonly ViewsProvider $inner,
     ) {}
 
+    #[\Override]
     public function getViews(): iterable
     {
         if (null !== $this->reversedViews) {

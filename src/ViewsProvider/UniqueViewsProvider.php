@@ -17,6 +17,7 @@ final class UniqueViewsProvider implements ViewsProvider
         private readonly ViewsProvider $inner,
     ) {}
 
+    #[\Override]
     public function getViews(): iterable
     {
         return new RewindableGenerator(function () {

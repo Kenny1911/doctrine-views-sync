@@ -140,7 +140,7 @@ final class ViewsSyncTest extends TestCase
 
         $sync = new ViewsSync(
             connection: $this->connection,
-            viewsProvider: new CallableViewsProvider(static function() {
+            viewsProvider: new CallableViewsProvider(static function () {
                 yield new View(
                     name: 'users_enabled',
                     sql: 'SELECT id, username FROM users WHERE enabled = true',
@@ -164,9 +164,9 @@ final class ViewsSyncTest extends TestCase
     private function getViews(): array
     {
         $views = [];
-        
+
         foreach ($this->connection->createSchemaManager()->listViews() as $view) {
-            if (in_array($view->getNamespaceName(), ['information_schema', 'pg_catalog', 'pg_toast'], true)) {
+            if (\in_array($view->getNamespaceName(), ['information_schema', 'pg_catalog', 'pg_toast'], true)) {
                 continue;
             }
 
