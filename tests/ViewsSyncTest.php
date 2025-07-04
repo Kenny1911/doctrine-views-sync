@@ -12,6 +12,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Type;
 use Kenny1911\DoctrineViewsSync\ViewsProvider\CallableViewsProvider;
+use Kenny1911\DoctrineViewsSync\ViewsProvider\DuplicateView;
 use Kenny1911\DoctrineViewsSync\ViewsSync;
 use PHPUnit\Framework\TestCase;
 
@@ -131,6 +132,28 @@ final class ViewsSyncTest extends TestCase
             ],
             actual: $result2,
         );
+    }
+
+    public function testCheckDuplicateViews(): void
+    {
+        self::expectException(DuplicateView::class);
+
+        $sync = new ViewsSync(
+            connection: $this->connection,
+            viewsProvider: new CallableViewsProvider(static function() {
+                yield new View(
+                    name: 'users_enabled',
+                    sql: 'SELECT id, username FROM users WHERE enabled = true',
+                );
+
+                yield new View(
+                    name: 'users_enabled',
+                    sql: 'SELECT id, username FROM users WHERE enabled = true',
+                );
+            }),
+        );
+
+        $sync->create();
     }
 
     /**

@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Kenny1911\DoctrineViewsSync\ViewsProvider\ReverseViewsProvider;
+use Kenny1911\DoctrineViewsSync\ViewsProvider\UniqueViewsProvider;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -32,7 +33,7 @@ final class ViewsSync
     ) {
         /** @noinspection PhpUnhandledExceptionInspection */
         $this->schemaManager = $this->connection->createSchemaManager();
-        $this->viewsProvider = $viewsProvider;
+        $this->viewsProvider = new UniqueViewsProvider($viewsProvider);
         $this->reverseViewsProvider = new ReverseViewsProvider($this->viewsProvider);
     }
 
