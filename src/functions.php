@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Kenny1911\DoctrineViewsSync;
 
+use function iterator_to_array as iterator_to_array_orig;
+
 /**
  * @internal
  * @psalm-internal Kenny1911\DoctrineViewsSync
@@ -15,12 +17,8 @@ namespace Kenny1911\DoctrineViewsSync;
 function iterator_to_array(iterable $iterator, bool $preserve_keys = true): array
 {
     if ($iterator instanceof \Traversable) {
-        return iterator_to_array($iterator, $preserve_keys);
+        return iterator_to_array_orig($iterator, $preserve_keys);
     }
 
-    if (\is_array($iterator)) {
-        return $preserve_keys ? $iterator : array_values($iterator);
-    }
-
-    throw new \InvalidArgumentException('Invalid type of parameter $iterator.');
+    return $preserve_keys ? $iterator : array_values($iterator);
 }
