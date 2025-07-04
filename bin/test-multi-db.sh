@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+WORKING_DIR="$(dirname $(dirname $(realpath $0)))"
+cd "${WORKING_DIR}"
+
 DOCKER_COMPOSE="${DOCKER_COMPOSE:-docker compose}"
 
 # Run SQLite
