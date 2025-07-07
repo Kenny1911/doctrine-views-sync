@@ -17,18 +17,20 @@ use Doctrine\DBAL\Tools\DsnParser;
  */
 final class DbManager
 {
-    /** @psalm-var Params */
-    private readonly array $params;
-
-    private readonly ?string $dbname;
+    public function __construct(
+        public readonly Connection $connection,
+        public readonly Schema $schema,
+    ) {}
 
     /**
      * @psalm-param Params $params
      */
-    public function __construct(array $params)
+    public static function fromParams(array $params): self
     {
-        $this->params = $params;
-        $this->dbname = $params['dbname'] ?? null;
+        return new self(
+            DriverManager::getConnection($params),
+            new Schema(),
+        );
     }
 
     public static function fromDsn(string $dsn): self
@@ -36,20 +38,17 @@ final class DbManager
         $dsnParser = new DsnParser();
         $params = $dsnParser->parse($dsn);
 
-        return new self($params);
+        return self::fromParams($params);
     }
 
     /**
      * @throws Exception
      */
-    public function init(Schema $schema): Connection
+    public function migrate(): void
     {
         $this->dropDatabase();
 
-        $connection = DriverManager::getConnection($this->params);
-        $connection->createSchemaManager()->migrateSchema($schema);
-
-        return $connection;
+        $this->connection->createSchemaManager()->migrateSchema($this->schema);
     }
 
     /**
@@ -57,24 +56,29 @@ final class DbManager
      */
     private function dropDatabase(): void
     {
-        if (null === $this->dbname) {
+        $this->connection->close();
+
+        /** @psalm-suppress InternalMethod */
+        $params = $this->connection->getParams();
+        $dbname = $params['dbname'] ?? null;
+        unset($params['dbname']);
+
+        if (false === \is_string($dbname)) {
             return;
         }
 
-        $params = $this->params;
-        unset($params['dbname']);
         $connection = DriverManager::getConnection($params);
         $sm = $connection->createSchemaManager();
 
-        $shouldDropDatabase = \in_array($this->dbname, $sm->listDatabases(), true);
-        $dbname = $connection->getDatabasePlatform()->quoteSingleIdentifier($this->dbname); // quoted dbname
+        $shouldDropDatabase = \in_array($dbname, $sm->listDatabases(), true);
+        $quotedDbname = $connection->getDatabasePlatform()->quoteSingleIdentifier($dbname); // quoted dbname
 
 
         if ($shouldDropDatabase) {
-            $sm->dropDatabase($dbname);
+            $sm->dropDatabase($quotedDbname);
         }
 
-        $sm->createDatabase($dbname);
+        $sm->createDatabase($quotedDbname);
 
         $connection->close();
     }

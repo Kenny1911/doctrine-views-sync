@@ -6,11 +6,7 @@ namespace Kenny1911\DoctrineViewsSync\Tests;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
-use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Schema\Schema;
-use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\View;
-use Doctrine\DBAL\Types\Type;
 use Kenny1911\DoctrineViewsSync\ViewsProvider\CallableViewsProvider;
 use Kenny1911\DoctrineViewsSync\ViewsProvider\DuplicateView;
 use Kenny1911\DoctrineViewsSync\ViewsSync;
@@ -36,20 +32,17 @@ final class ViewsSyncTest extends TestCase
     #[\Override]
     protected function setUp(): void
     {
-        $this->connection = DbManager::fromDsn($_ENV['DATABASE_URL'])
-            ->init(new Schema(
-                tables: [
-                    (new Table(
-                        name: 'users',
-                        columns: [
-                            (new Column('id', Type::getType('guid')))->setNotnull(true),
-                            (new Column('username', Type::getType('string')))->setNotnull(true),
-                            (new Column('password', Type::getType('string')))->setNotnull(true),
-                            (new Column('enabled', Type::getType('boolean')))->setNotnull(true),
-                        ],
-                    ))->setPrimaryKey(['id']),
-                ],
-            ));
+        $dbManager = DbManager::fromDsn($_ENV['DATABASE_URL']);
+        $this->connection = $dbManager->connection;
+
+        $usersTable = $dbManager->schema->createTable('users');
+        $usersTable->addColumn('id', 'guid')->setNotnull(true);
+        $usersTable->addColumn('username', 'string')->setNotnull(true);
+        $usersTable->addColumn('password', 'string')->setNotnull(true);
+        $usersTable->addColumn('enabled', 'boolean')->setNotnull(true);
+        $usersTable->setPrimaryKey(['id']);
+
+        $dbManager->migrate();
 
         foreach (self::USERS as $user) {
             $this->connection->executeQuery(
