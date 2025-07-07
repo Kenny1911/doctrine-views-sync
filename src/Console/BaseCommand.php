@@ -6,6 +6,7 @@ namespace Kenny1911\DoctrineViewsSync\Console;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ConnectionRegistry;
+use Kenny1911\DoctrineViewsSync\Metadata\MetadataStorage;
 use Kenny1911\DoctrineViewsSync\Persistence\SingleConnectionRegistry;
 use Kenny1911\DoctrineViewsSync\Psr\Container\MapContainer;
 use Kenny1911\DoctrineViewsSync\ViewsProvider;
@@ -24,13 +25,10 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 abstract class BaseCommand extends Command
 {
-    /**
-     * @param iterable<non-empty-string> $ignoredViews
-     */
     final public function __construct(
         private readonly ConnectionRegistry $connectionRegistry,
         private readonly ContainerInterface $viewsProviderLocator,
-        private readonly iterable $ignoredViews = [],
+        private readonly ContainerInterface $metadataStorageLocator,
         ?string $name = null,
     ) {
         parent::__construct($name);
@@ -39,6 +37,7 @@ abstract class BaseCommand extends Command
     final public static function createByConnection(
         Connection $connection,
         ViewsProvider $viewsProvider,
+        MetadataStorage $metadataStorage,
         ?string $name = null,
     ): self {
         $connectionRegistry = new SingleConnectionRegistry($connection);
@@ -46,6 +45,7 @@ abstract class BaseCommand extends Command
         return new static(
             connectionRegistry: $connectionRegistry,
             viewsProviderLocator: new MapContainer([$connectionRegistry->getDefaultConnectionName() => $viewsProvider]),
+            metadataStorageLocator: new MapContainer([$connectionRegistry->getDefaultConnectionName() => $metadataStorage]),
             name: $name,
         );
     }
@@ -80,9 +80,16 @@ abstract class BaseCommand extends Command
             throw new \LogicException(\sprintf('Invalid views provider. Expected %s, got %s.', ViewsProvider::class, get_debug_type($viewsProvider)));
         }
 
+        $metadataStorage = $this->metadataStorageLocator->get($connectionName);
+
+        if (false === $metadataStorage instanceof MetadataStorage) {
+            throw new \LogicException(\sprintf('Invalid metadata storage. Expected %s, got %s.', MetadataStorage::class, get_debug_type($viewsProvider)));
+        }
+
         $viewsSync = new ViewsSync(
             connection: $connection,
             viewsProvider: $viewsProvider,
+            metadataStorage: $metadataStorage,
             output: $output,
         );
 

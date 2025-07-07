@@ -7,7 +7,8 @@ namespace Kenny1911\DoctrineViewsSync;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
-use Kenny1911\DoctrineViewsSync\ViewsProvider\ReverseViewsProvider;
+use Kenny1911\DoctrineViewsSync\Metadata\MetadataStorage;
+use Kenny1911\DoctrineViewsSync\ViewsProvider\MetadataStorageViewsProvider;
 use Kenny1911\DoctrineViewsSync\ViewsProvider\UniqueViewsProvider;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -29,12 +30,13 @@ final class ViewsSync
     public function __construct(
         private readonly Connection $connection,
         ViewsProvider $viewsProvider,
+        private readonly MetadataStorage $metadataStorage,
         private readonly OutputInterface $output = new NullOutput(),
     ) {
         /** @noinspection PhpUnhandledExceptionInspection */
         $this->schemaManager = $this->connection->createSchemaManager();
         $this->viewsProvider = new UniqueViewsProvider($viewsProvider);
-        $this->reverseViewsProvider = new ReverseViewsProvider($this->viewsProvider);
+        $this->reverseViewsProvider = new MetadataStorageViewsProvider($this->metadataStorage);
     }
 
     public function drop(): void
@@ -60,10 +62,14 @@ final class ViewsSync
      */
     private function doDrop(): void
     {
-        foreach ($this->reverseViewsProvider->getViews() as $view) {
+        $views = $this->reverseViewsProvider->getViews();
+
+        foreach ($views as $view) {
             $this->schemaManager->dropView($view->getQuotedName($this->connection->getDatabasePlatform()));
             $this->output->writeln(\sprintf('Drop view "%s".', $view->getName()));
         }
+
+        $this->metadataStorage->saveViews([]);
     }
 
     /**
@@ -71,10 +77,14 @@ final class ViewsSync
      */
     private function doCreate(): void
     {
-        foreach ($this->viewsProvider->getViews() as $view) {
+        $views = iterator_to_array($this->viewsProvider->getViews(), false);
+
+        foreach ($views as $view) {
             $this->schemaManager->createView($view);
             $this->output->writeln(\sprintf('Create view "%s".', $view->getName()));
         }
+
+        $this->metadataStorage->saveViews($views);
     }
 
     /**

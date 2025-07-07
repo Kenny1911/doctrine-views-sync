@@ -7,6 +7,9 @@ namespace Kenny1911\DoctrineViewsSync\Tests;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\View;
+use Kenny1911\DoctrineViewsSync\Metadata\MetadataStorage;
+use Kenny1911\DoctrineViewsSync\Metadata\TableMetadataStorage;
+use Kenny1911\DoctrineViewsSync\ViewsProvider;
 use Kenny1911\DoctrineViewsSync\ViewsProvider\CallableViewsProvider;
 use Kenny1911\DoctrineViewsSync\ViewsProvider\DuplicateView;
 use Kenny1911\DoctrineViewsSync\ViewsSync;
@@ -26,6 +29,8 @@ final class ViewsSyncTest extends TestCase
 
     private Connection $connection;
 
+    private MetadataStorage $metadataStorage;
+
     /**
      * @throws Exception
      */
@@ -41,6 +46,11 @@ final class ViewsSyncTest extends TestCase
         $usersTable->addColumn('password', 'string')->setNotnull(true);
         $usersTable->addColumn('enabled', 'boolean')->setNotnull(true);
         $usersTable->setPrimaryKey(['id']);
+
+        $this->metadataStorage = new TableMetadataStorage(
+            connection: $this->connection,
+        );
+        $this->metadataStorage->configureSchema($dbManager->schema);
 
         $dbManager->migrate();
 
@@ -64,8 +74,7 @@ final class ViewsSyncTest extends TestCase
      */
     public function test(): void
     {
-        $sync = new ViewsSync(
-            connection: $this->connection,
+        $sync = $this->createSync(
             viewsProvider: new CallableViewsProvider(static fn() => yield new View(
                 name: 'users_enabled',
                 sql: 'SELECT id, username FROM users WHERE enabled = true',
@@ -103,8 +112,7 @@ final class ViewsSyncTest extends TestCase
         unset($sync, $result);
 
         // Check sync view
-        $sync2 = new ViewsSync(
-            connection: $this->connection,
+        $sync2 = $this->createSync(
             viewsProvider: new CallableViewsProvider(static fn() => yield new View(
                 name: 'users_enabled',
                 sql: 'SELECT username FROM users WHERE enabled = true',
@@ -131,8 +139,7 @@ final class ViewsSyncTest extends TestCase
     {
         self::expectException(DuplicateView::class);
 
-        $sync = new ViewsSync(
-            connection: $this->connection,
+        $sync = $this->createSync(
             viewsProvider: new CallableViewsProvider(static function () {
                 yield new View(
                     name: 'users_enabled',
@@ -149,6 +156,15 @@ final class ViewsSyncTest extends TestCase
         $sync->create();
     }
 
+    private function createSync(ViewsProvider $viewsProvider): ViewsSync
+    {
+        return new ViewsSync(
+            connection: $this->connection,
+            viewsProvider: $viewsProvider,
+            metadataStorage: $this->metadataStorage,
+        );
+    }
+
     /**
      * @return list<View>
      *
@@ -156,17 +172,7 @@ final class ViewsSyncTest extends TestCase
      */
     private function getViews(): array
     {
-        $views = [];
-
-        foreach ($this->connection->createSchemaManager()->listViews() as $view) {
-            if (\in_array($view->getNamespaceName(), ['information_schema', 'pg_catalog', 'pg_toast'], true)) {
-                continue;
-            }
-
-            $views[] = $view;
-        }
-
-        return $views;
+        return $this->metadataStorage->loadViews();
     }
 
     private function getViewName(View $view): string
