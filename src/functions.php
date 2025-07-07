@@ -12,6 +12,8 @@ use function iterator_to_array as iterator_to_array_orig;
  *
  * @template T
  *
+ * @param iterable<T> $iterator
+ *
  * @return ($preserve_keys is true ? array<T> : list<T>)
  */
 function iterator_to_array(iterable $iterator, bool $preserve_keys = true): array
