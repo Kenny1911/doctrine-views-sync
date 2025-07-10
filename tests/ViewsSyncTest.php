@@ -9,6 +9,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\View;
 use Kenny1911\DoctrineViewsSync\Metadata\MetadataStorage;
 use Kenny1911\DoctrineViewsSync\Metadata\TableMetadataStorage;
+use Kenny1911\DoctrineViewsSync\Schema\View as DependView;
 use Kenny1911\DoctrineViewsSync\ViewsProvider;
 use Kenny1911\DoctrineViewsSync\ViewsProvider\CallableViewsProvider;
 use Kenny1911\DoctrineViewsSync\ViewsProvider\DuplicateView;
@@ -156,6 +157,37 @@ final class ViewsSyncTest extends TestCase
         $sync->create();
     }
 
+    /**
+     * @throws Exception
+     */
+    public function testDependViews(): void
+    {
+        $sync = $this->createSync(
+            viewsProvider: new CallableViewsProvider(static function () {
+                // View users_enabled_view depends on other view users_view, but it is earlier in the list
+                yield new DependView('users_enabled_view', 'SELECT id, username FROM users_view WHERE enabled = true', ['users_view']);
+                yield new View('users_view', 'SELECT id, username, enabled FROM users');
+            }),
+        );
+
+        self::assertSame([], $this->getViewsNames());
+
+        $sync->drop();
+        self::assertSame([], $this->getViewsNames());
+
+        $sync->create();
+        self::assertSame(['users_view', 'users_enabled_view'], $this->getViewsNames());
+
+        $sync->drop();
+        self::assertSame([], $this->getViewsNames());
+
+        $sync->create();
+        self::assertSame(['users_view', 'users_enabled_view'], $this->getViewsNames());
+
+        $sync->drop();
+        self::assertSame([], $this->getViewsNames());
+    }
+
     private function createSync(ViewsProvider $viewsProvider): ViewsSync
     {
         return new ViewsSync(
@@ -173,6 +205,16 @@ final class ViewsSyncTest extends TestCase
     private function getViews(): array
     {
         return $this->metadataStorage->loadViews();
+    }
+
+    /**
+     * @return list<string>
+     *
+     * @throws Exception
+     */
+    private function getViewsNames(): array
+    {
+        return array_map(fn(View $v) => $this->getViewName($v), $this->getViews());
     }
 
     private function getViewName(View $view): string

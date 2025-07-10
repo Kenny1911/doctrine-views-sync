@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Kenny1911\DoctrineViewsSync\ViewsProvider;
 
-use Doctrine\DBAL\Schema\View;
 use Kenny1911\DoctrineViewsSync\ViewsProvider;
 use function Kenny1911\DoctrineViewsSync\iterator_to_array;
 
@@ -14,9 +13,6 @@ use function Kenny1911\DoctrineViewsSync\iterator_to_array;
  */
 final class ReverseViewsProvider implements ViewsProvider
 {
-    /** @var array<View>|null */
-    private ?array $reversedViews = null;
-
     public function __construct(
         private readonly ViewsProvider $inner,
     ) {}
@@ -24,12 +20,6 @@ final class ReverseViewsProvider implements ViewsProvider
     #[\Override]
     public function getViews(): iterable
     {
-        if (null !== $this->reversedViews) {
-            return $this->reversedViews;
-        }
-
-        $this->reversedViews = $reversedViews = array_reverse(iterator_to_array($this->inner->getViews()));
-
-        return $reversedViews;
+        return array_reverse(iterator_to_array($this->inner->getViews(), false));
     }
 }

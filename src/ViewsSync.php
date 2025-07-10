@@ -9,6 +9,8 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Kenny1911\DoctrineViewsSync\Metadata\MetadataStorage;
 use Kenny1911\DoctrineViewsSync\ViewsProvider\MetadataStorageViewsProvider;
+use Kenny1911\DoctrineViewsSync\ViewsProvider\ReverseViewsProvider;
+use Kenny1911\DoctrineViewsSync\ViewsProvider\TopologicalSortViewsProvider;
 use Kenny1911\DoctrineViewsSync\ViewsProvider\UniqueViewsProvider;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -35,8 +37,14 @@ final class ViewsSync
     ) {
         /** @noinspection PhpUnhandledExceptionInspection */
         $this->schemaManager = $this->connection->createSchemaManager();
-        $this->viewsProvider = new UniqueViewsProvider($viewsProvider);
-        $this->reverseViewsProvider = new MetadataStorageViewsProvider($this->metadataStorage);
+        $this->viewsProvider = new TopologicalSortViewsProvider(
+            new UniqueViewsProvider($viewsProvider),
+        );
+        $this->reverseViewsProvider = new ReverseViewsProvider(
+            new TopologicalSortViewsProvider(
+                new MetadataStorageViewsProvider($this->metadataStorage),
+            ),
+        );
     }
 
     public function drop(): void
