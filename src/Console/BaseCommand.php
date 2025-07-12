@@ -38,7 +38,7 @@ abstract class BaseCommand extends Command
     final protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $connectionName = $input->hasArgument('conn') ? (string) $input->getArgument('conn') : null;
-        $viewsSync = $this->factory->create($connectionName);
+        $viewsSync = $this->factory->create($connectionName, $output);
 
         $this->doExecute($viewsSync);
 
