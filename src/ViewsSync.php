@@ -71,6 +71,11 @@ final class ViewsSync
     private function doDrop(): void
     {
         $views = $this->reverseViewsProvider->getViews();
+        $views = iterator_to_array($views, false);
+
+        if ([] === $views) {
+            return;
+        }
 
         foreach ($views as $view) {
             $this->schemaManager->dropView($view->getQuotedName($this->connection->getDatabasePlatform()));

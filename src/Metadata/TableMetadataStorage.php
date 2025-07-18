@@ -34,6 +34,12 @@ final class TableMetadataStorage implements MetadataStorage
     #[\Override]
     public function loadViews(): array
     {
+        $sm = $this->connection->createSchemaManager();
+
+        if (false === $sm->tablesExist([$this->table])) {
+            return [];
+        }
+
         /** @var list<View> $views */
         $views = [];
 
