@@ -48,49 +48,37 @@ Example Symfony configuration using a single Doctrine connection.
 Basic service registration and command wiring:
 
 ```yaml
-parameters:
-  doctrine.views.ignored:
-    - 'ignored_view'
-    - '*_ignored_view'
-    - '/^[\w\d]_ignored_view$/'
-
 services:
   doctrine.views_provider:
     class: Kenny1911\DoctrineViewsSync\ViewsProvider\ChainViewsProvider
     arguments:
       - !tagged_iterator 'doctrine.views_provider'
 
-  doctrine.views_provider.locator:
-    class: Kenny1911\DoctrineViewsSync\Psr\Container\SingleValueContainer
+  doctrine.views_sync.metadata_storage:
+    class: Kenny1911\DoctrineViewsSync\Metadata\TableMetadataStorage
     arguments:
-      - default
+      - '@doctrine.dbal.default_connection'
+
+  doctrine.views_sync.factory:
+    class: Kenny1911\DoctrineViewsSync\ViewsSyncFactory
+    factory: [null, 'fromSingleConnection']
+    arguments:
+      - '@doctrine.dbal.default_connection'
       - '@doctrine.views_provider'
+      - '@doctrine.views_sync.metadata_storage'
 
   Kenny1911\DoctrineViewsSync\Console\ViewsDropCommand:
     arguments:
-      - '@doctrine'
-      - '@doctrine.views_provider.locator'
-      - '%doctrine.views.ignored%'
+      - '@doctrine.views_sync.factory'
     autoconfigure: true
 
   Kenny1911\DoctrineViewsSync\Console\ViewsSyncCommand:
     arguments:
-      - '@doctrine'
-      - '@doctrine.views_provider.locator'
-      - '%doctrine.views.ignored%'
+      - '@doctrine.views_sync.factory'
     autoconfigure: true
 ```
 
 Services implementing the `Kenny1911\DoctrineViewsSync\ViewsProvider` interface must be tagged with `doctrine.views_provider`.
-
-The `doctrine.views_provider.locator` service is a PSR container where the connection name is used as the key, and the corresponding `ViewsProvider` as the value.
-
-In the `doctrine.views.ignored` parameter specifies a list of database views that should be ignored.
-Regular view names, glob patterns, and regular expressions are supported.
-
-If you only use a single connection, you can use the `Kenny1911\DoctrineViewsSync\Psr\Container\SingleValueContainer`.  
-For multiple connections, consider using `Kenny1911\DoctrineViewsSync\Psr\Container\MapContainer`  
-or the [Symfony Tagged Locator](https://symfony.com/doc/current/service_container/service_subscribers_locators.html#defining-a-service-locator).
 
 Example `ViewsProvider` implementation:
 
@@ -115,6 +103,8 @@ services:
     tags:
       - 'doctrine.views_provider'
 ```
+
+To configure the database schema, use the `TableMetadataStorage::configureSchema()` method.
 
 ## Development
 

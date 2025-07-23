@@ -48,52 +48,40 @@ php bin/console doctrine:views:sync
 Базовая конфигурация и регистрация команд:
 
 ```yaml
-parameters:
-  doctrine.views.ignored:
-    - 'ignored_view'
-    - '*_ignored_view'
-    - '/^[\w\d]_ignored_view$/'
-    
 services:
   doctrine.views_provider:
     class: Kenny1911\DoctrineViewsSync\ViewsProvider\ChainViewsProvider
     arguments:
       - !tagged_iterator 'doctrine.views_provider'
 
-  doctrine.views_provider.locator:
-    class: Kenny1911\DoctrineViewsSync\Psr\Container\SingleValueContainer
+  doctrine.views_sync.metadata_storage:
+    class: Kenny1911\DoctrineViewsSync\Metadata\TableMetadataStorage
     arguments:
-      - default
+      - '@doctrine.dbal.default_connection'
+
+  doctrine.views_sync.factory:
+    class: Kenny1911\DoctrineViewsSync\ViewsSyncFactory
+    factory: [null, 'fromSingleConnection']
+    arguments:
+      - '@doctrine.dbal.default_connection'
       - '@doctrine.views_provider'
+      - '@doctrine.views_sync.metadata_storage'
 
   Kenny1911\DoctrineViewsSync\Console\ViewsDropCommand:
     arguments:
-      - '@doctrine'
-      - '@doctrine.views_provider.locator'
-      - '%doctrine.views.ignored%'
+      - '@doctrine.views_sync.factory'
     autoconfigure: true
 
   Kenny1911\DoctrineViewsSync\Console\ViewsSyncCommand:
     arguments:
-      - '@doctrine'
-      - '@doctrine.views_provider.locator'
-      - '%doctrine.views.ignored%'
+      - '@doctrine.views_sync.factory'
     autoconfigure: true
 ```
 
 Тегом `doctrine.views_provider` должны быть помечены сервисы, реализующие интерфейс
 `Kenny1911\DoctrineViewsSync\ViewsProvider`.
 
-Сервис `doctrine.views_provider.locator` - это psr контейнер, где в качестве ключа используется название подключения, а
-в качестве значения `ViewsProvider`.
-
-В параметре `doctrine.views.ignored` указывается список представлений БД, которые следует игнорировать. Поддерживаются
-обычные названия представлений, glob шаблоны и регулярные выражения.
-
-Если подключение одно, то можно использовать `Kenny1911\DoctrineViewsSync\Psr\Container\SingleValueContainer`.
-В случае, если используется несколько подключений, можно использовать
-`Kenny1911\DoctrineViewsSync\Psr\Container\MapContainer` или
-[Symfony Tagged Locator](https://symfony.com/doc/current/service_container/service_subscribers_locators.html#defining-a-service-locator).
+Пример имплементации `ViewsProvider`:
 
 ```php
 use Doctrine\DBAL\Schema\View;
@@ -116,6 +104,8 @@ services:
     tags:
       - 'doctrine.views_provider'
 ```
+
+Для конфигурации схемы БД следует использовать метод `TableMetadataStorage::configureSchema()`.
 
 ## Разработка
 
